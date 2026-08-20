@@ -8,9 +8,12 @@ RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/li
 # Copy manifests and source code
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
+COPY migrations ./migrations
 
 # Build for release
-RUN cargo build --release
+# SQLx needs a dummy DATABASE_URL during build to validate queries
+# The actual DB connection is made at runtime
+RUN SQLX_OFFLINE=true cargo build --release
 
 # Stage 2: Production runtime
 FROM debian:bookworm-slim
@@ -27,3 +30,4 @@ EXPOSE 4000
 
 # Run the binary
 CMD ["./backend"]
+

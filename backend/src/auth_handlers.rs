@@ -52,11 +52,11 @@ pub async fn register(
     let password_hash = hash_password(&payload.password)
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Hashing failed".to_string()))?;
 
-    let record = sqlx::query!(
+    let record = sqlx::query_as::<_, (Uuid, String)>(
         r#"INSERT INTO players (username, password_hash) VALUES ($1, $2) RETURNING id, username"#,
-        payload.username,
-        password_hash
     )
+    .bind(&payload.username)
+    .bind(&password_hash)
     .fetch_one(&state.db)
     .await
     .map_err(|err| {
@@ -68,13 +68,13 @@ pub async fn register(
         (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string())
     })?;
 
-    let token = create_jwt(record.id, &record.username)
+    let token = create_jwt(record.0, &record.1)
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Token failed".to_string()))?;
 
     Ok(Json(AuthResponse {
         token,
-        user_id: record.id,
-        username: record.username,
+        user_id: record.0,
+        username: record.1,
     }))
 }
 
@@ -82,25 +82,26 @@ pub async fn login(
     State(state): State<AppState>,
     Json(payload): Json<AuthPayload>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
-    let user = sqlx::query!(
+    let user = sqlx::query_as::<_, (Uuid, String, String)>(
         r#"SELECT id, username, password_hash FROM players WHERE username = $1"#,
-        payload.username
     )
+    .bind(&payload.username)
     .fetch_optional(&state.db)
     .await
     .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?
     .ok_or((StatusCode::UNAUTHORIZED, "Invalid credentials".to_string()))?;
 
-    if !verify_password(&payload.password, &user.password_hash) {
+    if !verify_password(&payload.password, &user.2) {
         return Err((StatusCode::UNAUTHORIZED, "Invalid credentials".to_string()));
     }
 
-    let token = create_jwt(user.id, &user.username)
+    let token = create_jwt(user.0, &user.1)
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Token failed".to_string()))?;
 
     Ok(Json(AuthResponse {
         token,
-        user_id: user.id,
-        username: user.username,
+        user_id: user.0,
+        username: user.1,
     }))
 }
+
