@@ -1,5 +1,5 @@
 # Stage 1: Build environment
-FROM rust:1.80-slim-bookworm AS builder
+FROM rust:nightly-slim-bookworm AS builder
 WORKDIR /usr/src/app
 
 # Install build dependencies
