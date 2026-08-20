@@ -10,7 +10,7 @@ COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 
 # Build for release
-RUN cargo build --release
+RUN SQLX_OFFLINE=true cargo build --release
 
 # Stage 2: Production runtime
 FROM debian:bookworm-slim
