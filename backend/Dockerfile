@@ -1,5 +1,5 @@
 # Stage 1: Build environment
-FROM rust:nightly-slim AS builder
+FROM rustlang/rust:nightly AS builder
 WORKDIR /usr/src/app
 
 # Install build dependencies
