@@ -39,12 +39,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let state = AppState { db: db_pool };
 
-    // Build CORS layer
-    // Note: Cannot use allow_credentials(true) with allow_origin(*).
-    // JWT tokens are sent in Authorization header which works with wildcard origin.
-    let cors = CorsLayer::permissive()
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
+    // Build CORS layer with explicit configuration
+    let cors = CorsLayer::very_permissive();
 
     // Create inner router with all API routes
     let api_routes = Router::new()
