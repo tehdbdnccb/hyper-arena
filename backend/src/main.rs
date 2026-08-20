@@ -6,6 +6,7 @@ mod ws_handler;
 use axum::{
     routing::{get, post},
     Router,
+    http::{Method, header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}},
 };
 use sqlx::PgPool;
 use std::net::SocketAddr;
@@ -39,9 +40,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState { db: db_pool };
 
     let cors = CorsLayer::new()
+        // Allow any origin (or you can restrict this to your Vercel URL later)
         .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+        // Explicitly allow the methods the browser needs
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        // Explicitly allow the headers your frontend is sending
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
 
     let app = Router::new()
         .route("/api/auth/register", post(register))
