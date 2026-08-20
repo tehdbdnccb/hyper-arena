@@ -28,6 +28,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/arena".to_string());
         
     let db_pool = PgPool::connect(&db_url).await?;
+    
+    // Run migrations on startup
+    println!("🔄 Running database migrations...");
+    sqlx::migrate!("./migrations")
+        .run(&db_pool)
+        .await?;
+    println!("✅ Migrations completed successfully");
+    
     let state = AppState { db: db_pool };
 
     let cors = CorsLayer::new()
@@ -51,3 +59,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
