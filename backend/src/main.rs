@@ -10,7 +10,7 @@ use axum::{
 };
 use sqlx::PgPool;
 use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 use auth_handlers::{login, register};
 use protected_handlers::get_profile;
@@ -39,21 +39,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let state = AppState { db: db_pool };
 
-    let cors = CorsLayer::new()
-        // Allow any origin (or you can restrict this to your Vercel URL later)
-        .allow_origin(Any)
-        // Explicitly allow the methods the browser needs
+    // Build CORS layer with explicit origin, methods, and headers
+    let cors = CorsLayer::permissive()
+        .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        // Explicitly allow the headers your frontend is sending
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
 
-    let app = Router::new()
-        .route("/api/auth/register", post(register))
-        .route("/api/auth/login", post(login))
-        .route("/api/player/profile", get(get_profile))
+    // Create inner router with all API routes
+    let api_routes = Router::new()
+        .route("/auth/register", post(register))
+        .route("/auth/login", post(login))
+        .route("/player/profile", get(get_profile))
         .route("/ws", get(ws_handler))
-        .layer(cors)
         .with_state(state);
+
+    // Build main app with CORS middleware wrapping everything
+    let app = Router::new()
+        .nest("/api", api_routes)
+        .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 4000));
     println!("🚀 Server listening on http://{}", addr);
